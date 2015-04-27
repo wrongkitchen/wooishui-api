@@ -6,28 +6,28 @@ var config = {
   development: {
     root: rootPath,
     app: {
-      name: 'wooishui-api'
+      name: 'wooishui-express'
     },
     port: 3000,
-    db: 'mongodb://localhost/wooishui-api-development'
+    db: 'mongodb://localhost/wooishui-express-development',
   },
 
   test: {
     root: rootPath,
     app: {
-      name: 'wooishui-api'
+      name: 'wooishui-express'
     },
     port: 3000,
-    db: 'mongodb://localhost/wooishui-api-test'
+    db: 'mongodb://localhost/wooishui-express-test',
   },
 
   production: {
     root: rootPath,
     app: {
-      name: 'wooishui-api'
+      name: 'wooishui'
     },
-    port: 3000,
-    db: 'mongodb://localhost/wooishui-api-production'
+    port: process.env.PORT,
+    db: process.env.MONGOLAB_URI,
   }
 };
 
