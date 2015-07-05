@@ -5,6 +5,7 @@ public/components
 logs
 *.log
 .DS_Store
+cert
 
 # Runtime data
 pids
