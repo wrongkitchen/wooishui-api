@@ -43,7 +43,7 @@ module.exports = function (app, config) {
 		cert 			: config.root + '/cert/cert.pem',
 		key 			: config.root + '/cert/key.pem',
 		production 		: false,
-		passphrase 		: 'KJ1kj1kj1'
+		passphrase 		: process.env.PASS_PHRASE || 'KJ1kj1kj1'
 	});
 	apnConnection.on("connected", function() {
 	    console.log("Connected");
