@@ -21,6 +21,7 @@ var submitAPNS = function(deviceToken, message, pParam){
 	note.payload = pParam;
 
 	apnConnection.pushNotification(note, device);
+	
 };
 
 router.use(function (req, res, next) {
@@ -45,25 +46,25 @@ module.exports = function (app, config) {
 		production 		: false,
 		passphrase 		: process.env.PASS_PHRASE || 'KJ1kj1kj1'
 	});
-	apnConnection.on("connected", function() {
-	    console.log("Connected");
-	});
-	apnConnection.on("transmitted", function(notification, device) {
-	    console.log("Notification transmitted to:" + device.token.toString("hex"));
-	});
+	// apnConnection.on("connected", function() {
+	//     console.log("Connected");
+	// });
+	// apnConnection.on("transmitted", function(notification, device) {
+	//     console.log("Notification transmitted to:" + device.token.toString("hex"));
+	// });
 	apnConnection.on("transmissionError", function(errCode, notification, device) {
 	    console.error("Notification caused error: " + errCode + " for device ", device, notification);
 	    if (errCode === 8) {
 	        console.log("A error code of 8 indicates that the device token is invalid. This could be for a number of reasons - are you using the correct environment? i.e. Production vs. Sandbox");
 	    }
 	});
-	apnConnection.on("timeout", function () {
-	    console.log("Connection Timeout");
-	});
+	// apnConnection.on("timeout", function () {
+	//     console.log("Connection Timeout");
+	// });
 
-	apnConnection.on("disconnected", function() {
-	    console.log("Disconnected from APNS");
-	});
+	// apnConnection.on("disconnected", function() {
+	//     console.log("Disconnected from APNS");
+	// });
 
 	apnConnection.on("socketError", console.error);
 
@@ -129,12 +130,20 @@ router.get('/debtsSubmit', function (req, res, next) {
 			var _debt = {
 				creatorUID: pUser.uid,
 				creditorUID: (isCreatorDebt) ? otherUserID : pUser.uid,
-				creditorName: (isCreatorDebt) ? otherUserName : pUser.name,
 				debtorsUID: (isCreatorDebt) ? pUser.uid : otherUserID,
-				debtorsName: (isCreatorDebt) ? pUser.name : otherUserName,
 				price: price,
 				desc: desc
 			};
+			if(pParam){
+				if(pParam.withoutSocial){
+					if(isCreatorDebt){
+						_debt.creditorName = otherUserName;
+					} else {
+						_debt.debtorsName = otherUserName;
+					}
+				}
+			}
+
 			_debt = (pParam) ? _.extend(pParam, _debt) : _debt;
 
 			var newDebt = new Debt(_debt);
@@ -383,11 +392,24 @@ router.get('/debtsCredits', function (req, res, next) {
 		var uid = _q.uid;
 		Debt.find().where({ hidden : false })
 		.or([{ creditorUID : uid }, { debtorsUID : uid }])
-		.exec(function(err, data){
-			if(err)
+		.exec(function(err, datas){
+			if(err){
 				res.status(500).json({ error: err });
-			else
-				res.jsonp(data);
+			} else {
+				var _socialData = _.filter(datas, { withoutSocial : false });
+				var _uids = _.union(_.pluck(_socialData, 'creditorUID'), _.pluck(_socialData, 'debtorsUID'));
+				FB.api({ method: 'users.getInfo', uids: _uids, fields: ['uid', 'name'] }, function (pFBNames) {
+					_.each(datas, function(pData){
+						if(pData.withoutSocial === false){
+							var creditor = _.find(pFBNames, { uid : pData.creditorUID });
+							var debtor = _.find(pFBNames, { uid : pData.debtorsUID });
+							pData.creditorName = (creditor) ? creditor.name : '';
+							pData.debtorsName = (debtor) ? debtor.name : '';
+						}
+					});
+					res.jsonp(datas);
+				});
+			}
 		});
 	} else {
 		res.status(500).json({ error: 'Please login to our system' });
